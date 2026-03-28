@@ -2,7 +2,7 @@
 
 import { renderBoard } from "./renderBoard.js";
 import { resolveMove, resolveNoLegalMove } from "../rules/rules.js";
-import { getCurrentPlayer, updatePlayer } from "../game/gameState.js";
+import { getCurrentPlayer } from "../game/gameState.js";
 import { autoScaleUI } from "./autoScaleUI.js";
 
 function rerender(rootEl, getGameState) {
@@ -42,10 +42,6 @@ export function attachInputHandlers(
     if (event.target.id === "pickup-pile-btn") {
       handlePickup(rootEl, getGameState, setGameState, onStateChange);
       return;
-    }
-
-    if (event.target.id === "sort-hand-btn") {
-      handleSortHand(rootEl, getGameState, setGameState, onStateChange);
     }
   });
 }
@@ -161,36 +157,6 @@ function handlePickup(rootEl, getGameState, setGameState, onStateChange) {
   }
 }
 
-function handleSortHand(rootEl, getGameState, setGameState, onStateChange) {
-  const gameState = getGameState();
-  const currentPlayer = getCurrentPlayer(gameState);
-
-  if (!currentPlayer || currentPlayer.hand.length <= 1) {
-    return;
-  }
-
-  const selectedIds = new Set(gameState.selectedCardIds || []);
-  const sortedHand = sortCards(currentPlayer.hand);
-
-  const updatedPlayer = {
-    ...currentPlayer,
-    hand: sortedHand
-  };
-
-  let nextState = updatePlayer(gameState, updatedPlayer);
-
-  nextState = {
-    ...nextState,
-    selectedCardIds: sortedHand
-      .filter((card) => selectedIds.has(card.id))
-      .map((card) => card.id)
-  };
-
-  setGameState(nextState);
-  rerender(rootEl, getGameState);
-  onStateChange(nextState, { action: "sort" });
-}
-
 function getActiveZone(player) {
   if (player.hand.length > 0) return "hand";
   if (player.faceUp.length > 0) return "faceUp";
@@ -203,40 +169,4 @@ function getActiveCards(player) {
   if (player.faceUp.length > 0) return player.faceUp;
   if (player.faceDown.length > 0) return player.faceDown;
   return [];
-}
-
-function sortCards(cards) {
-  const suitOrder = {
-    clubs: 0,
-    diamonds: 1,
-    hearts: 2,
-    spades: 3
-  };
-
-  const rankOrder = {
-    "3": 3,
-    "4": 4,
-    "5": 5,
-    "6": 6,
-    "8": 8,
-    "9": 9,
-    "J": 11,
-    "Q": 12,
-    "K": 13,
-    "A": 14,
-    "7": 20,
-    "10": 21,
-    "2": 22
-  };
-
-  return [...cards].sort((a, b) => {
-    const aRank = rankOrder[a.rank] ?? 999;
-    const bRank = rankOrder[b.rank] ?? 999;
-
-    if (aRank !== bRank) {
-      return aRank - bRank;
-    }
-
-    return suitOrder[a.suit] - suitOrder[b.suit];
-  });
 }

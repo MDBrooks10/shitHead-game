@@ -1,0 +1,35 @@
+Folder PATH listing
+Volume serial number is 6CFC-FCB6
+C:.
+|   index.html
+|   run-server.bat
+|   structure.txt
+|   style.css
+|   
+\---src
+    |   main.js
+    |   
+    +---ai
+    |       aiPlayer.js
+    |       
+    +---cards
+    |       cardDefinitions.js
+    |       deck.js
+    |       
+    +---game
+    |       gameSetup.js
+    |       gameState.js
+    |       turnManager.js
+    |       
+    +---rules
+    |       moveValidator.js
+    |       rules.js
+    |       specialCards.js
+    |       
+    \---ui
+            autoScaleUI.js
+            deckThemes.js
+            inputHandlers.js
+            renderBoard.js
+            renderCard.js
+            

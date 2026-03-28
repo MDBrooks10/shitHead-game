@@ -1,5 +1,3 @@
-// ui/renderBoard.js
-
 import { renderCard } from "./renderCard.js";
 
 export function renderBoard(gameState, rootEl) {
@@ -109,7 +107,6 @@ function renderCurrentPlayerArea(gameState) {
     const faceDownCard = player.faceDown[i];
     const faceUpCard = player.faceUp[i];
 
-    // Face-down only
     if (faceDownCard && !faceUpCard) {
       const blindCardEl = renderCard(faceDownCard, {
         faceDown: true,
@@ -121,7 +118,6 @@ function renderCurrentPlayerArea(gameState) {
       stack.appendChild(blindCardEl);
     }
 
-    // Both face-down and face-up
     if (faceDownCard && faceUpCard) {
       const backEl = renderCard(faceDownCard, {
         faceDown: true,
@@ -146,14 +142,17 @@ function renderCurrentPlayerArea(gameState) {
   const handArea = document.createElement("div");
   handArea.className = "hand-area";
 
-  player.hand.forEach((card, index) => {
+  const sortedHand = sortHandForDisplay(player.hand);
+  const handPositions = getHandPositions(sortedHand);
+
+  sortedHand.forEach((card, index) => {
     const cardEl = renderCard(card, {
       selectable: isUsingHand,
       selected: selectedIds.has(card.id),
       cssClass: "hand-card"
     });
 
-    positionHandCard(cardEl, index, player.hand.length);
+    positionHandCard(cardEl, handPositions[index], index, sortedHand.length);
     handArea.appendChild(cardEl);
   });
 
@@ -182,22 +181,113 @@ function renderControls(gameState) {
   controls.innerHTML = `
     <button id="play-selected-btn" ${isUsingFaceDown ? "disabled" : ""}>Play Selected</button>
     <button id="pickup-pile-btn">Pick Up Pile</button>
-    <button id="sort-hand-btn">Sort Hand</button>
   `;
 
   return controls;
 }
 
-function positionHandCard(cardEl, index, total) {
-  const spread = 80;
+function sortHandForDisplay(hand) {
+  return [...hand].sort((a, b) => {
+    const rankDiff = getRankSortValue(a.rank) - getRankSortValue(b.rank);
+    if (rankDiff !== 0) return rankDiff;
+    return a.suit.localeCompare(b.suit);
+  });
+}
+
+function getRankSortValue(rank) {
+  const values = {
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    J: 11,
+    Q: 12,
+    K: 13,
+    A: 14,
+    "2": 15
+  };
+
+  return values[rank] ?? 99;
+}
+
+function getHandPositions(sortedHand) {
+  const cardWidth = 100;
+  const handWidth = 1200;
+
+  const positions = [];
+  let x = 0;
+
+  for (let i = 0; i < sortedHand.length; i++) {
+    positions.push(x);
+
+    if (i < sortedHand.length - 1) {
+      const current = sortedHand[i];
+      const next = sortedHand[i + 1];
+
+      const largeHand = sortedHand.length >= 10;
+      const hugeHand = sortedHand.length >= 14;
+
+      let normalGap = 42;
+      let sameRankGap = 22;
+
+      if (largeHand) {
+        normalGap = 36;
+        sameRankGap = 18;
+      }
+
+      if (hugeHand) {
+        normalGap = 30;
+        sameRankGap = 14;
+      }
+
+      x += current.rank === next.rank ? sameRankGap : normalGap;
+    }
+  }
+
+  const totalWidth =
+    positions.length > 0
+      ? positions[positions.length - 1] + cardWidth
+      : cardWidth;
+
+  const startX = (handWidth - totalWidth) / 2;
+
+  return positions.map((pos) => pos + startX);
+}
+
+function positionHandCard(cardEl, left, index, total) {
   const center = (total - 1) / 2;
   const offset = index - center;
+  const distanceFromCenter = Math.abs(offset);
 
-  const left = 220 + offset * spread;
-  const top = Math.abs(offset) * 18;
-  const rotate = offset * 10;
+  let curveStrength = 8;
+  let maxRotate = 4.5;
+
+  if (total <= 5) {
+    curveStrength = 12;
+    maxRotate = 7;
+  } else if (total <= 8) {
+    curveStrength = 9;
+    maxRotate = 5.5;
+  } else if (total <= 12) {
+    curveStrength = 6;
+    maxRotate = 3.5;
+  } else {
+    curveStrength = 4;
+    maxRotate = 2.2;
+  }
+
+  const top = distanceFromCenter * curveStrength;
+  const rotate = offset * maxRotate;
 
   cardEl.style.left = `${left}px`;
   cardEl.style.top = `${top}px`;
-  cardEl.style.transform = `rotate(${rotate}deg)`;
+
+  cardEl.style.setProperty("--card-rotate", `${rotate}deg`);
+  cardEl.style.transform = `rotate(var(--card-rotate))`;
+
+  cardEl.style.zIndex = `${index}`;
 }
